@@ -55,3 +55,14 @@ For verbose debug logs, set `GRPC_TRACE=all GRPC_VERBOSITY=info` [(gRPC docs)](G
 ```
 code=StatusCode.INTERNAL len(msg)=37 msg=Received RST_STREAM with error code 2
 ```
+
+
+### Python server: No error!
+
+The Python server does not honor the client's max header list size request. It returns the entire overly long response, so the client then fails with:
+
+```
+code=StatusCode.RESOURCE_EXHAUSTED len(msg)=45 msg=received trailing metadata size exceeds limit
+```
+
+This at least makes more sense than the previous error!
