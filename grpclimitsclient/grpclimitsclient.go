@@ -9,6 +9,7 @@ import (
 	"github.com/evanj/grpclimits/errrequest"
 	"github.com/evanj/grpclimits/helloworld"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -18,12 +19,18 @@ func main() {
 	addr := flag.String("addr", "localhost:8001", "server address")
 	errLength := flag.Int("errLength", 128, "error message length")
 	maxHeaderSize := flag.Int("maxHeaderSize", 0, "value to set using WithMaxHeaderListSize")
+	keepaliveTime := flag.Duration("keepaliveTime", 0, "enable client keepalive with this time")
 	flag.Parse()
 
 	dialOptions := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 	if *maxHeaderSize > 0 {
 		log.Printf("setting Dial option WithMaxHeaderListSize(%d)", *maxHeaderSize)
 		dialOptions = append(dialOptions, grpc.WithMaxHeaderListSize(uint32(*maxHeaderSize)))
+	}
+	if *keepaliveTime != 0 {
+		log.Printf("setting client keepalive time=%s", keepaliveTime.String())
+		opt := grpc.WithKeepaliveParams(keepalive.ClientParameters{Time: *keepaliveTime})
+		dialOptions = append(dialOptions, opt)
 	}
 
 	log.Printf("sending request to %s with error length %d ...", *addr, *errLength)

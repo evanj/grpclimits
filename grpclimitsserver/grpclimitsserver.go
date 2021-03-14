@@ -24,11 +24,13 @@ func (s *server) SayHello(ctx context.Context, request *helloworld.HelloRequest)
 	}
 	log.Printf("returning error with len(message)=%d bytes", len(errMsg))
 
+	// add error details
 	// st, err := status.New(codes.FailedPrecondition, errMsg).WithDetails(&helloworld.HelloReply{Message: "reply"})
 	// if err != nil {
 	// 	return nil, status.Errorf(codes.Internal, "failed to add details: %w", err)
 	// }
 	// return nil, st.Err()
+
 	return nil, status.Errorf(codes.FailedPrecondition, errMsg)
 }
 
