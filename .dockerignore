@@ -1,0 +1,11 @@
+# https://docs.docker.com/engine/reference/builder/#dockerignore-file
+# exclude EVERYTHING by default
+*
+
+# explicitly INCLUDE stuff we need
+!errrequest
+!go.mod
+!go.sum
+!grpclimitsclient
+!grpclimitsserver
+!helloworld

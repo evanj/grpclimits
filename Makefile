@@ -34,3 +34,7 @@ $(BUILD_DIR):
 
 clean:
 	$(RM) -r $(BUILD_DIR) python/__pycache__
+
+docker:
+
+	docker build . --tag=gcr.io/networkping/grpclimitsserver:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD)
