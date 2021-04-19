@@ -7,7 +7,7 @@ import logging
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(description="Send a request for a large error message")
     parser.add_argument(
         "--addr",
         type=str,
@@ -38,11 +38,7 @@ def main() -> None:
         LIMIT = 70
         if len(msg_truncated) > LIMIT:
             msg_truncated = msg[:LIMIT] + "...TRUNCATED"
-        print(
-            "EXCEPTION! code={} len(msg)={} msg={}".format(
-                e.code(), len(msg), msg_truncated
-            )
-        )
+        print("EXCEPTION! code={} len(msg)={} msg={}".format(e.code(), len(msg), msg_truncated))
 
 
 if __name__ == "__main__":
