@@ -84,7 +84,7 @@ class MultiNameChannel(object):
                         return named_channel.grpc_channel
                     except grpc.FutureTimeoutError:
                         logging.debug(
-                            "channel=%d name=%s failed to connect in timeout %f s",
+                            "failed to connect to channel=%d name=%s in timeout %f s",
                             i,
                             named_channel.name,
                             MultiNameChannel.CONNECT_TIMEOUT_S,
