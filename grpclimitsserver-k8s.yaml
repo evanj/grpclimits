@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpclimitsserver
+  labels:
+    app: grpclimitsserver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: grpclimitsserver
+  template:
+    metadata:
+      labels:
+        app: grpclimitsserver
+
+    spec:
+      containers:
+      - name: grpclimitsserver
+        image: gcr.io/networkping/grpclimitsserver:20210420-a922940093
+
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 0.1
+          limits:
+            memory: 128Mi
+
+        # defense in depth: read-only FS; run as nobody/nogroup
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpclimitsserver
+spec:
+  # headless service: no load balancing or service IP
+  clusterIP: "None"
+  selector:
+    app: grpclimitsserver
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 8080
+      targetPort: 8080

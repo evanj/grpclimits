@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pythonclient
+  labels:
+    app: pythonclient
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pythonclient
+  template:
+    metadata:
+      labels:
+        app: pythonclient
+
+    spec:
+      containers:
+      - name: pythonclient
+        image: gcr.io/networkping/pythonclient:20210420-46db27b7c5
+        args: ["--addrs=grpclimitsserver:8080", "--round_robin"]
+
+        # https://github.com/grpc/grpc/blob/master/doc/environment_variables.md
+        env:
+        - name: "GRPC_TRACE"
+          value: "cares_resolver,round_robin,pick_first,subchannel,subchannel_pool,client_channel_routing"
+        - name: "GRPC_VERBOSITY"
+          value: "DEBUG"
+
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 0.1
+          limits:
+            memory: 128Mi
+
+        # defense in depth: read-only FS; run as nobody/nogroup
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
