@@ -7,7 +7,10 @@ import pythonmulticlient
 class TestMultiNameChannel(unittest.TestCase):
     def test_no_backend(self) -> None:
         # calling get with an invalid name should still return a channel
-        multi_channel = pythonmulticlient.MultiNameChannel(["doesnotexist.example.com:12345"])
+        empty_grpc_options = ()
+        multi_channel = pythonmulticlient.MultiNameChannel(
+            ["doesnotexist.example.com:12345"], empty_grpc_options
+        )
         channel1 = multi_channel.get()
         self.assertIsNotNone(channel1)
 
