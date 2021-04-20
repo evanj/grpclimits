@@ -10,11 +10,12 @@ $(BUILD_DIR)/.gocheck_stamp: $(wildcard **/*.go) | $(BUILD_DIR)
 	go mod tidy
 	touch $@
 
-$(BUILD_DIR)/venv: python/requirements.txt python/requirements_build.txt
+$(BUILD_DIR)/venv: python/requirements.txt python/requirements_test.txt python/requirements_venv.txt
 	rm -rf $@
 	python3 -m venv $@
-	$@/bin/pip install -r python/requirements_build.txt
-	$@/bin/pip install -r python/requirements.txt
+	# update pip/setuptools before installing the other requirements
+	$@/bin/pip install -r python/requirements_venv.txt
+	$@/bin/pip install -r python/requirements.txt -r python/requirements_test.txt
 
 # recursive wildcard function from
 # https://blog.jgc.org/2011/07/gnu-make-recursive-wildcard-function.html
@@ -36,5 +37,7 @@ clean:
 	$(RM) -r $(BUILD_DIR) python/__pycache__
 
 docker:
-
 	docker build . --tag=gcr.io/networkping/grpclimitsserver:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD)
+	docker run --rm -ti gcr.io/networkping/grpclimitsserver:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD) --help
+	docker build -f Dockerfile.pythonclient . --tag=gcr.io/networkping/pythonclient:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD)
+	docker run --rm -ti gcr.io/networkping/pythonclient:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD) --help

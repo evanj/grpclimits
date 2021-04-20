@@ -1,0 +1,19 @@
+# Python dependencies
+FROM debian:10-slim AS py_dependencies
+COPY python/requirements_venv.txt python/requirements.txt /src/
+WORKDIR /src
+# need requirements_venv for updated pip to install grpcio binary wheels
+# use pip install --target to avoid a virtualenv in the release image; saves about 14 MiB size
+RUN apt-get update && \
+    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install -r requirements_venv.txt && \
+    /venv/bin/pip install --target=/app -r requirements.txt
+
+# Runtime image
+FROM gcr.io/distroless/python3-debian10:nonroot
+# avoids a venv: saves about 14 MiB of space
+COPY --from=py_dependencies /app /app
+COPY python/*.py /app/
+WORKDIR /app
+ENTRYPOINT ["/usr/bin/python3", "pythonmulticlient.py"]

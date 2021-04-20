@@ -1,6 +1,6 @@
 # Go build image: separate downloading dependencies from build for incremental builds
 FROM golang:1.16.3-buster AS go_dep_downloader
-WORKDIR concurrentlimit
+WORKDIR grpclimitsserver
 COPY go.mod .
 COPY go.sum .
 RUN go mod download -x
