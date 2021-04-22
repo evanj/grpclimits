@@ -33,8 +33,15 @@ def _connectivity_code_to_object(code: int) -> grpc.ChannelConnectivity:
     return _CONNECTIVITY_CODE_MAP.get(code, grpc.ChannelConnectivity.TRANSIENT_FAILURE)
 
 
-class MultiNameChannel(object):
-    """Selects a ready gRPC channel from a set of DNS names."""
+# see channel arguments:
+# https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments
+# https://github.com/grpc/grpc/blob/v1.37.x/include/grpc/impl/codegen/grpc_types.h
+_ROUND_ROBIN_OPTION = ("grpc.lb_policy_name", "round_robin")
+
+
+class RoundRobinMultiChannel(object):
+    """Select a ready gRPC channel from a set of addresses, using a round-robin policy.
+    This set the gRPC channel option grpc.lb_policy_name=round_robin."""
 
     CONNECT_TIMEOUT_S = 0.1
 
@@ -51,14 +58,20 @@ class MultiNameChannel(object):
         for name in names:
             self.named_channels.append(NamedChannel(name))
 
-        self.grpc_options = tuple(grpc_options)
+        self.grpc_options = tuple(grpc_options) + (_ROUND_ROBIN_OPTION,)
         self.lock = threading.Lock()
+        self.next_index = 0
 
     def get(self) -> grpc.Channel:
         """Returns a ready Channel from the set, or a random channel if none are ready."""
 
         with self.lock:
-            for i, named_channel in enumerate(self.named_channels):
+            # check each channel in the round-robin order
+            first_checked_index = self.next_index
+            while True:
+                named_channel = self.named_channels[self.next_index]
+                self.next_index = (self.next_index + 1) % len(self.named_channels)
+
                 if named_channel.grpc_channel is not None:
                     # call a private grpc channel method to see if the channel is working
                     try_to_connect = True
@@ -67,36 +80,33 @@ class MultiNameChannel(object):
                     )
                     state = _connectivity_code_to_object(state_code)
                     if state is grpc.ChannelConnectivity.READY:
-                        if i != 0:
-                            # move this ready channel to the front so future gets() use it first
-                            logging.debug("moving channel=%d in state=%s to front", i, state.name)
-                            self.named_channels[i] = self.named_channels[0]
-                            self.named_channels[0] = named_channel
                         return named_channel.grpc_channel
-                    else:
-                        logging.debug("skipping channel=%d in state=%s", i, state.name)
 
                     # not ready: check the other channels
+                    logging.debug("skipping channel=%s in state=%s", named_channel.name, state.name)
+
                 else:
                     # no channel yet: create it and wait the connect timeout
-                    logging.debug("connecting to channel=%d name=%s", i, named_channel.name)
+                    logging.debug("connecting to channel=%s", named_channel.name)
                     named_channel.grpc_channel = grpc.insecure_channel(
                         named_channel.name, self.grpc_options
                     )
                     connected_future = grpc.channel_ready_future(named_channel.grpc_channel)
                     try:
-                        connected_future.result(timeout=MultiNameChannel.CONNECT_TIMEOUT_S)
+                        connected_future.result(timeout=RoundRobinMultiChannel.CONNECT_TIMEOUT_S)
                         return named_channel.grpc_channel
                     except grpc.FutureTimeoutError:
                         logging.debug(
-                            "failed to connect to channel=%d name=%s in timeout=%fs",
-                            i,
+                            "failed to connect to channel=%s with timeout=%fs",
                             named_channel.name,
-                            MultiNameChannel.CONNECT_TIMEOUT_S,
+                            RoundRobinMultiChannel.CONNECT_TIMEOUT_S,
                         )
 
-            # we failed to find any channel that is ready. Select one at random
-            # the idea is that gRPC itself will retry connections to failed dns names
+                if first_checked_index == self.next_index:
+                    break
+
+            # we did not find any ready channel. Select one at random.
+            # gRPC will try to connect to failed dns names in the background
             named_channel = random.choice(self.named_channels)
             return named_channel.grpc_channel
 
@@ -137,7 +147,7 @@ def main() -> None:
         "--force_multi",
         default=False,
         action="store_true",
-        help="use the MultiNameChannel even with a single address",
+        help="use the RoundRobinMultiChannel even with a single address",
     )
     parser.add_argument(
         "--round_robin", default=False, action="store_true", help="use round_robin "
@@ -162,8 +172,8 @@ def main() -> None:
         channel = grpc.insecure_channel(addrs[0], grpc_options)
         channel_getter: ChannelGetter = ChannelHolder(channel)
     else:
-        logging.info("using MultiNameChannel with %d addresses = %r ...", len(addrs), addrs)
-        channel_getter = MultiNameChannel(addrs, grpc_options)
+        logging.info("using RoundRobinMultiChannel with %d addresses = %r ...", len(addrs), addrs)
+        channel_getter = RoundRobinMultiChannel(addrs, grpc_options)
 
     while True:
         channel = channel_getter.get()
@@ -172,7 +182,7 @@ def main() -> None:
         req = helloworld_pb2.HelloRequest(name="errLength=1")
         try:
             resp = client.SayHello(req)
-            logging.info("successful request")
+            logging.info("successful request message=%s", resp.message)
         except grpc.RpcError as e:
             logging.info("failed request code=%s details=%s", e.code(), e.details())
 
