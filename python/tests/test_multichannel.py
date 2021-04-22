@@ -36,30 +36,30 @@ class Backend(object):
 _EMPTY_GRPC_OPTIONS = ()
 
 
-class TestRoundRobinMultiChannel(unittest.TestCase):
+class TestRoundRobinMultiStub(unittest.TestCase):
     def test_no_backend(self) -> None:
         # calling get with an invalid name should still return a channel
-        multi_channel = pythonmulticlient.RoundRobinMultiChannel(
-            ["doesnotexist.example.com:12345"], _EMPTY_GRPC_OPTIONS
+        multi_stub = pythonmulticlient.RoundRobinMultiStub(
+            ["doesnotexist.example.com:12345"],
+            helloworld_pb2_grpc.GreeterStub,
         )
-        channel1 = multi_channel.get()
-        self.assertIsNotNone(channel1)
+        stub1 = multi_stub.get()
+        self.assertIsNotNone(stub1)
 
         # calling get again will return the same channel
-        channel2 = multi_channel.get()
-        self.assertEqual(channel1, channel2)
+        stub2 = multi_stub.get()
+        self.assertEqual(stub1, stub2)
 
         # a fake gRPC call will fail with a message about DNS resolution
-        unary_callable = channel1.unary_unary("bad_method")
         with self.assertRaisesRegex(grpc.RpcError, "DNS resolution") as cm:
-            unary_callable(b"bad_request")
+            stub1.SayHello(helloworld_pb2.HelloRequest(name="test"))
         self.assertEqual(cm.exception.code(), grpc.StatusCode.UNAVAILABLE)
 
         # after close, a call fails with closed message; multiple close calls are permitted
-        multi_channel.close()
-        multi_channel.close()
+        multi_stub.close()
+        multi_stub.close()
         with self.assertRaisesRegex(ValueError, "closed channel"):
-            unary_callable(b"bad_request")
+            stub1.SayHello(helloworld_pb2.HelloRequest(name="test"))
 
     def _make_test_backend(self) -> Backend:
         server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=2))
@@ -74,23 +74,28 @@ class TestRoundRobinMultiChannel(unittest.TestCase):
         backend_a = self._make_test_backend()
         backend_b = self._make_test_backend()
 
-        multi_channel = pythonmulticlient.RoundRobinMultiChannel(
-            [backend_a.addr(), backend_b.addr()], _EMPTY_GRPC_OPTIONS
+        multi_stub = pythonmulticlient.RoundRobinMultiStub(
+            [backend_a.addr(), backend_b.addr()],
+            helloworld_pb2_grpc.GreeterStub,
         )
 
         try:
-            # 4 requests should work
+            # 4 requests should execute correctly
             for _ in range(4):
-                channel = multi_channel.get()
-                stub = helloworld_pb2_grpc.GreeterStub(channel)
-                resp = stub.SayHello(helloworld_pb2.HelloRequest(name="test"))
+                resp = multi_stub.get().SayHello(helloworld_pb2.HelloRequest(name="test"))
                 self.assertEqual(resp.message, "message")
 
             # the requests should have been evenly distributed across the backends
             self.assertEqual(2, backend_a.backend._request_count)
             self.assertEqual(2, backend_b.backend._request_count)
 
+            # calling close multiple times is fine, but requests should fail
+            multi_stub.close()
+            multi_stub.close()
+            with self.assertRaisesRegex(ValueError, "closed"):
+                multi_stub.get().SayHello(helloworld_pb2.HelloRequest(name="test"))
+
         finally:
-            multi_channel.close()
+            multi_stub.close()
             backend_b.close()
             backend_a.close()
