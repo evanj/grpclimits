@@ -1,0 +1,2 @@
+# ignore __pycache__ directories created by python3
+__pycache__/
