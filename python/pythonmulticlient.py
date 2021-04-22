@@ -108,6 +108,7 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
             assert len(channels) == len(self.named_channels)
             for i, named_channel in enumerate(channels):
                 # call a private grpc channel method to see if the channel is working
+                # TODO: use the public subscribe API, but that is more complicated
                 try_to_connect = True
                 state_code = named_channel.grpc_channel._channel.check_connectivity_state(
                     try_to_connect
@@ -118,16 +119,8 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
                     return named_channel
 
                 # for idle channels: the call to check_connectivity_state(try_to_connect=True)
-                # causes it to start connecting, so wait for IDLE or CONNECTING channels for a bit
+                # causes it to start connecting, so wait for IDLE or CONNECTING channels for a bit.
                 if state in (grpc.ChannelConnectivity.IDLE, grpc.ChannelConnectivity.CONNECTING):
-
-                    try_to_connect = False
-                    state_code2 = named_channel.grpc_channel._channel.check_connectivity_state(
-                        try_to_connect
-                    )
-                    state2 = _connectivity_code_to_object(state_code2)
-                    assert state2 is grpc.ChannelConnectivity.CONNECTING
-
                     # wait to see if it manages to connect
                     connected_future = grpc.channel_ready_future(named_channel.grpc_channel)
                     try:
@@ -136,11 +129,12 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
                         # connected!
                         self.next_index = (self.next_index + 1 + i) % len(self.named_channels)
                         return named_channel
-                    except grpc.FutureTimeoutError:
+                    except grpc.FutureTimeoutError as e:
                         logging.debug(
-                            "failed to connect to channel=%s within timeout=%fs",
+                            "failed to connect to channel=%s within timeout=%fs; message=%s",
                             named_channel.addr,
                             RoundRobinNamedChannels._CONNECT_TIMEOUT_S,
+                            str(e),
                         )
 
                 # not ready: check the other channels

@@ -95,6 +95,15 @@ class TestRoundRobinMultiStub(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "closed"):
                 multi_stub.get().SayHello(helloworld_pb2.HelloRequest(name="test"))
 
+            # create a stub with 1 working and 1 broken backend: requests should work
+            partial_stubs = pythonmulticlient.RoundRobinMultiStub(
+                [backend_a.addr(), "[::1:1]"], helloworld_pb2_grpc.GreeterStub
+            )
+            for _ in range(4):
+                resp = partial_stubs.get().SayHello(helloworld_pb2.HelloRequest(name="test"))
+                self.assertEqual(resp.message, "message")
+            self.assertEqual(6, backend_a.backend._request_count)
+
         finally:
             multi_stub.close()
             backend_b.close()
