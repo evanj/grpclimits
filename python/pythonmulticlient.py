@@ -21,7 +21,7 @@ _CONNECTIVITY_CODE_MAP = {
 
 
 def _connectivity_code_to_object(code: int) -> grpc.ChannelConnectivity:
-    # return a failure code if we see an unhandled code
+    # default=TRANSIENT_FAILURE: don't use channels in unknown states
     return _CONNECTIVITY_CODE_MAP.get(code, grpc.ChannelConnectivity.TRANSIENT_FAILURE)
 
 
@@ -105,7 +105,6 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
             channels = (
                 self.named_channels[self.next_index :] + self.named_channels[0 : self.next_index]
             )
-            assert len(channels) == len(self.named_channels)
             for i, named_channel in enumerate(channels):
                 # call a private grpc channel method to see if the channel is working
                 # TODO: use the public subscribe API, but that is more complicated
@@ -131,17 +130,15 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
                         return named_channel
                     except grpc.FutureTimeoutError as e:
                         logging.debug(
-                            "failed to connect to channel=%s within timeout=%fs; message=%s",
+                            "failed to connect to channel=%s within timeout=%fs",
                             named_channel.addr,
                             RoundRobinNamedChannels._CONNECT_TIMEOUT_S,
-                            str(e),
                         )
 
                 # not ready: check the other channels
                 logging.debug("skipping channel=%s in state=%s", named_channel.addr, state.name)
 
             # we did not find any ready channel. Select one at random
-            # TODO: prefer CONNECTING over others
             return random.choice(self.named_channels)
 
     def close(self) -> None:
