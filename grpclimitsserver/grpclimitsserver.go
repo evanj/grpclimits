@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"time"
 
 	"github.com/evanj/grpclimits/errrequest"
 	"github.com/evanj/grpclimits/helloworld"
@@ -15,9 +16,16 @@ import (
 
 type server struct {
 	helloworld.UnimplementedGreeterServer
+	responseSleep time.Duration
+}
+
+func newServer(responseSleep time.Duration) *server {
+	return &server{helloworld.UnimplementedGreeterServer{}, responseSleep}
 }
 
 func (s *server) SayHello(ctx context.Context, request *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+	time.Sleep(s.responseSleep)
+
 	errMsg, err := errrequest.Generate(request.Name)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
@@ -36,6 +44,7 @@ func (s *server) SayHello(ctx context.Context, request *helloworld.HelloRequest)
 
 func main() {
 	addr := flag.String("addr", "localhost:8001", "listening address")
+	responseSleep := flag.Duration("responseSleep", 0, "time to sleep before responding")
 	flag.Parse()
 
 	lis, err := net.Listen("tcp", *addr)
@@ -44,7 +53,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	helloworld.RegisterGreeterServer(s, &server{})
+	helloworld.RegisterGreeterServer(s, newServer(*responseSleep))
 
 	log.Printf("serving on %s ...", *addr)
 	if err := s.Serve(lis); err != nil {

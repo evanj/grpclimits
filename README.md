@@ -78,3 +78,8 @@ code=StatusCode.RESOURCE_EXHAUSTED len(msg)=45 msg=received trailing metadata si
 ```
 
 This at least makes more sense than the previous error!
+
+
+### Dropping connections with iptables
+
+sudo iptables -A INPUT -p tcp --dport 12345 -j DROP && sudo iptables -A INPUT -p tcp --sport 12345 -j DROP && date --iso-8601=ns
