@@ -5,6 +5,15 @@ import helloworld_pb2
 import helloworld_pb2_grpc
 import logging
 import time
+import typing
+
+# see channel arguments:
+# https://grpc.github.io/grpc/python/glossary.html#term-channel_arguments
+# https://github.com/grpc/grpc/blob/v1.37.x/include/grpc/impl/codegen/grpc_types.h
+_LB_POLICY_OPTION = "grpc.lb_policy_name"
+_KEEPALIVE_TIME_MS_OPTION = "grpc.keepalive_time_ms"
+_KEEPALIVE_TIMEOUT_MS_OPTION = "grpc.keepalive_timeout_ms"
+_KEEPALIVE_PERMIT_WITHOUT_CALLS_OPTION = "grpc.keepalive_permit_without_calls"
 
 
 def main() -> None:
@@ -31,12 +40,46 @@ def main() -> None:
         "--interRequestSleep",
         type=float,
         default=0.0,
-        help="time to sleep between requests",
+        help="seconds to sleep between requests (fractions supported)",
+    )
+    parser.add_argument(
+        "--lbPolicy",
+        type=str,
+        default="",
+        help="gRPC load balancer policy; default=pick_first; set to round_robin to change",
+    )
+    parser.add_argument(
+        "--keepaliveTime",
+        type=float,
+        default=0.0,
+        help="seconds to set keepalive_time_ms: time to wait before sending a keepalive ping",
+    )
+    parser.add_argument(
+        "--keepaliveTimeout",
+        type=float,
+        default=0.0,
+        help="seconds to set keepalive_timeout_ms: time to wait for ping response",
+    )
+    parser.add_argument(
+        "--keepaliveWithoutCalls",
+        type=bool,
+        default=False,
+        help="send keepalives even without calls; default=false",
     )
     args = parser.parse_args()
 
-    print("creating channel for addr={} ...".format(args.addr))
-    channel = grpc.insecure_channel(args.addr)
+    grpc_options: typing.Tuple[typing.Tuple[str, int], ...] = ()
+    if args.lbPolicy != "":
+        grpc_options += ((_LB_POLICY_OPTION, args.lbPolicy),)
+    if args.keepaliveTime > 0:
+        grpc_options += ((_KEEPALIVE_TIME_MS_OPTION, int(args.keepaliveTime * 1000)),)
+    if args.keepaliveTimeout > 0:
+        grpc_options += ((_KEEPALIVE_TIMEOUT_MS_OPTION, int(args.keepaliveTimeout * 1000)),)
+    if args.keepaliveWithoutCalls:
+        grpc_options += ((_KEEPALIVE_PERMIT_WITHOUT_CALLS_OPTION, 1),)
+
+    print("creating channel for addr={}; options={} ...".format(args.addr, grpc_options))
+    channel = grpc.insecure_channel(args.addr, options=grpc_options)
     client = helloworld_pb2_grpc.GreeterStub(channel)
 
     for i in range(args.count):
