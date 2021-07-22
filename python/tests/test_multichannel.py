@@ -27,7 +27,7 @@ class Backend(object):
         self.listen_port = listen_port
 
     def addr(self) -> str:
-        return "[::1]:" + str(self.listen_port)
+        return "localhost:" + str(self.listen_port)
 
     def close(self) -> None:
         self.server.stop(grace=0)
@@ -65,7 +65,7 @@ class TestRoundRobinMultiStub(unittest.TestCase):
         server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=2))
         backend = HelloWorldServicer()
         helloworld_pb2_grpc.add_GreeterServicer_to_server(backend, server)
-        listen_port = server.add_insecure_port("[::1]:0")
+        listen_port = server.add_insecure_port("localhost:0")
         server.start()
 
         return Backend(server, backend, listen_port)
@@ -97,7 +97,7 @@ class TestRoundRobinMultiStub(unittest.TestCase):
 
             # create a stub with 1 working and 1 broken backend: requests should work
             partial_stubs = pythonmulticlient.RoundRobinMultiStub(
-                [backend_a.addr(), "[::1:1]"], helloworld_pb2_grpc.GreeterStub
+                [backend_a.addr(), "localhost:1"], helloworld_pb2_grpc.GreeterStub
             )
             for _ in range(4):
                 resp = partial_stubs.get().SayHello(helloworld_pb2.HelloRequest(name="test"))
