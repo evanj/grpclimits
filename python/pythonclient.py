@@ -78,7 +78,7 @@ def main() -> None:
     if args.keepaliveWithoutCalls:
         grpc_options += ((_KEEPALIVE_PERMIT_WITHOUT_CALLS_OPTION, 1),)
 
-    print("creating channel for addr={}; options={} ...".format(args.addr, grpc_options))
+    logging.info("creating channel for addr={}; options={} ...".format(args.addr, grpc_options))
     channel = grpc.insecure_channel(args.addr, options=grpc_options)
     client = helloworld_pb2_grpc.GreeterStub(channel)
 
@@ -86,22 +86,22 @@ def main() -> None:
         if i > 0:
             time.sleep(args.interRequestSleep)
 
-        print("sending request")
+        logging.info("sending request")
         req = helloworld_pb2.HelloRequest(
             name="errLength={}".format(args.errLength),
         )
         try:
             resp = client.SayHello(req)
-            print("SUCCESS")
+            logging.info("SUCCESS")
         except grpc.RpcError as e:
             msg = e.details()
             msg_truncated = msg
             LIMIT = 70
             if len(msg_truncated) > LIMIT:
                 msg_truncated = msg[:LIMIT] + "...TRUNCATED"
-            print("EXCEPTION! code={} len(msg)={} msg={}".format(e.code(), len(msg), msg_truncated))
+            logging.info("EXCEPTION! code={} len(msg)={} msg={}".format(e.code(), len(msg), msg_truncated))
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
     main()
