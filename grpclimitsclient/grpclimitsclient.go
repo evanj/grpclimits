@@ -9,6 +9,7 @@ import (
 	"github.com/evanj/grpclimits/errrequest"
 	"github.com/evanj/grpclimits/helloworld"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -66,9 +67,11 @@ func main() {
 			if grpcStatus, ok := status.FromError(err); ok {
 				msg := grpcStatus.Message()
 				msgTruncated := msg
-				const msgLimit = 70
-				if len(msgTruncated) > msgLimit {
-					msgTruncated = msg[:msgLimit] + "...TRUNCATED"
+				if grpcStatus.Code() != codes.Unavailable {
+					const msgLimit = 70
+					if len(msgTruncated) > msgLimit {
+						msgTruncated = msg[:msgLimit] + "...TRUNCATED"
+					}
 				}
 
 				details := grpcStatus.Details()
