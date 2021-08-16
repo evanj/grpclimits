@@ -62,6 +62,7 @@ Client:
 
 For verbose debug logs, set `GRPC_TRACE=all GRPC_VERBOSITY=info` [(gRPC docs)](GRPC_VERBOSITY)
 
+
 ### Defaults Error message length >= 8003
 
 ```
@@ -82,4 +83,17 @@ This at least makes more sense than the previous error!
 
 ### Dropping connections with iptables
 
-sudo iptables -A INPUT -p tcp --dport 12345 -j DROP && sudo iptables -A INPUT -p tcp --sport 12345 -j DROP && date --iso-8601=ns
+Echo server:
+```
+sudo iptables -A INPUT -p tcp --dport 12345 -j DROP && sudo iptables -A INPUT -p tcp --sport 12345 -j DROP
+```
+
+gRPC server:
+```
+sudo iptables -A INPUT -p tcp --dport 8001 -j DROP && sudo iptables -A OUTPUT -p tcp --sport 8001 -j DROP
+```
+
+Reset:
+```
+sudo iptables -F INPUT && sudo iptables -F OUTPUT
+```
