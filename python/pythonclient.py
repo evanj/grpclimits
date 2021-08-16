@@ -99,9 +99,11 @@ def main() -> None:
             LIMIT = 70
             if len(msg_truncated) > LIMIT:
                 msg_truncated = msg[:LIMIT] + "...TRUNCATED"
-            logging.info("EXCEPTION! code={} len(msg)={} msg={}".format(e.code(), len(msg), msg_truncated))
+            logging.info(
+                "EXCEPTION! code={} len(msg)={} msg={}".format(e.code(), len(msg), msg_truncated)
+            )
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     main()
