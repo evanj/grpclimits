@@ -1,5 +1,5 @@
 # Go build image: separate downloading dependencies from build for incremental builds
-FROM golang:1.16.3-buster AS go_dep_downloader
+FROM golang:1.17.2-bullseye AS go_dep_downloader
 WORKDIR grpclimitsserver
 COPY go.mod .
 COPY go.sum .
@@ -12,7 +12,7 @@ COPY . .
 RUN CGO_ENABLED=0 go install -v ./grpclimitsserver
 
 # grpclimitsserver
-FROM gcr.io/distroless/static-debian10:nonroot as grpclimitsserver
+FROM gcr.io/distroless/static-debian11:nonroot as grpclimitsserver
 COPY --from=go_builder /go/bin/grpclimitsserver /
 ENTRYPOINT ["/grpclimitsserver"]
 CMD ["--addr=:8080"]
