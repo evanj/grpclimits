@@ -23,7 +23,7 @@ func main() {
 	maxHeaderSize := flag.Int("maxHeaderSize", 0, "value to set using WithMaxHeaderListSize")
 	keepaliveTime := flag.Duration("keepaliveTime", 0, "enable client keepalive with this time")
 	count := flag.Int("count", 1, "number of requests to make")
-	interRequestSleep := flag.Duration("interRequestSleep", 0, "time to sleep betweer requests")
+	interRequestSleep := flag.Duration("interRequestSleep", 0, "time to sleep between requests")
 	withBlock := flag.Bool("withBlock", true, "if we should use the WithBlock dial option")
 	dialTimeout := flag.Duration("dialTimeout", 0, "timeout to use for DialContext")
 	flag.Parse()
