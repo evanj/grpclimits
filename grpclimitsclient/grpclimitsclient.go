@@ -10,6 +10,7 @@ import (
 	"github.com/evanj/grpclimits/helloworld"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -27,7 +28,7 @@ func main() {
 	dialTimeout := flag.Duration("dialTimeout", 0, "timeout to use for DialContext")
 	flag.Parse()
 
-	dialOptions := []grpc.DialOption{grpc.WithInsecure()}
+	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if *withBlock {
 		log.Printf("setting Dial option WithBlock")
 		dialOptions = append(dialOptions, grpc.WithBlock())
