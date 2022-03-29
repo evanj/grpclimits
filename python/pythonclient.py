@@ -14,6 +14,7 @@ _LB_POLICY_OPTION = "grpc.lb_policy_name"
 _KEEPALIVE_TIME_MS_OPTION = "grpc.keepalive_time_ms"
 _KEEPALIVE_TIMEOUT_MS_OPTION = "grpc.keepalive_timeout_ms"
 _KEEPALIVE_PERMIT_WITHOUT_CALLS_OPTION = "grpc.keepalive_permit_without_calls"
+_MAX_METADATA_SIZE_OPTION = "grpc.max_metadata_size"
 
 
 def main() -> None:
@@ -66,6 +67,12 @@ def main() -> None:
         default=False,
         help="send keepalives even without calls; default=false",
     )
+    parser.add_argument(
+        "--maxHeaderSize",
+        type=int,
+        default=0,
+        help="set grpc.max_metadata_size to change the maximum header sizes",
+    )
     args = parser.parse_args()
 
     grpc_options: typing.Tuple[typing.Tuple[str, int], ...] = ()
@@ -77,6 +84,8 @@ def main() -> None:
         grpc_options += ((_KEEPALIVE_TIMEOUT_MS_OPTION, int(args.keepaliveTimeout * 1000)),)
     if args.keepaliveWithoutCalls:
         grpc_options += ((_KEEPALIVE_PERMIT_WITHOUT_CALLS_OPTION, 1),)
+    if args.maxHeaderSize:
+        grpc_options += ((_MAX_METADATA_SIZE_OPTION, args.maxHeaderSize),)
 
     logging.info("creating channel for addr={}; options={} ...".format(args.addr, grpc_options))
     channel = grpc.insecure_channel(args.addr, options=grpc_options)

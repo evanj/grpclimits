@@ -1,5 +1,5 @@
 # real runtime dependencies for the Python code: installed in Docker image
-grpcio==1.43.0
-protobuf==3.19.3
+grpcio==1.44.0
+protobuf==3.19.4
 # necessary for Python < 3.8 (Debian 10 is Python 3.7)
-typing-extensions==4.0.1
+typing-extensions==4.1.1

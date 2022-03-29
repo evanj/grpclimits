@@ -39,6 +39,9 @@ func (s *server) SayHello(ctx context.Context, request *helloworld.HelloRequest)
 	// }
 	// return nil, st.Err()
 
+	// set trailers: this also counts against the header lengths
+	// grpc.SetTrailer(ctx, metadata.Pairs("example-header", "long header value abcdefg"))
+
 	return nil, status.Errorf(codes.FailedPrecondition, errMsg)
 }
 
