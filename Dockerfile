@@ -1,5 +1,5 @@
 # Go build image: separate downloading dependencies from build for incremental builds
-FROM golang:1.17.2-bullseye AS go_dep_downloader
+FROM golang:1.19.0-bullseye AS go_dep_downloader
 WORKDIR grpclimitsserver
 COPY go.mod .
 COPY go.sum .

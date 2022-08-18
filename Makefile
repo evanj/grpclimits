@@ -67,3 +67,4 @@ docker:
 	docker run --rm -ti gcr.io/networkping/grpclimitsserver:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD) --help
 	docker build -f Dockerfile.pythonclient . --tag=gcr.io/networkping/pythonclient:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD)
 	docker run --rm -ti gcr.io/networkping/pythonclient:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD) --help
+	echo "SUCCESS"
