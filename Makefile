@@ -1,6 +1,7 @@
 BUILD_DIR:=build
 PROTOC:=$(BUILD_DIR)/bin/protoc
 PROTOC_GEN_GO:=$(BUILD_DIR)/protoc-gen-go
+PROTOC_GEN_GO_GRPC:=$(BUILD_DIR)/protoc-gen-go-grpc
 
 all: $(BUILD_DIR)/.gocheck_stamp $(BUILD_DIR)/venv $(BUILD_DIR)/.pythoncheck
 
@@ -30,8 +31,11 @@ $(BUILD_DIR)/.pythoncheck: $(PYTHON_FILES) python/helloworld_pb2.py | $(BUILD_DI
 	PYTHONPATH=python $(BUILD_DIR)/venv/bin/pytest --log-level=debug
 	touch $@
 
-helloworld/helloworld.pb.go: java/errorlimitserver/src/main/proto/helloworld.proto $(PROTOC) $(PROTOC_GEN_GO)
-	$(PROTOC) --plugin=$(PROTOC_GEN_GO) --go_opt=Mjava/errorlimitserver/src/main/proto/helloworld.proto=./helloworld --go_out=plugins=grpc:. $<
+helloworld/helloworld.pb.go: java/errorlimitserver/src/main/proto/helloworld.proto $(PROTOC) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
+	$(PROTOC) --plugin=$(PROTOC_GEN_GO) --plugin=$(PROTOC_GEN_GO_GRPC) \
+		--go_out=. --go_opt=Mjava/errorlimitserver/src/main/proto/helloworld.proto=./helloworld \
+		--go-grpc_out=. --go-grpc_opt=Mjava/errorlimitserver/src/main/proto/helloworld.proto=./helloworld \
+		$<
 
 python/helloworld_pb2.py: java/errorlimitserver/src/main/proto/helloworld.proto $(BUILD_DIR)/venv
 	# TODO: Use the main venv with grpcio-tools updates to the latest protobuf
@@ -43,9 +47,14 @@ python/helloworld_pb2.py: java/errorlimitserver/src/main/proto/helloworld.proto 
 $(PROTOC): buildtools/getprotoc.go | $(BUILD_DIR)
 	go run $< --outputDir=$(BUILD_DIR)
 
-# I think the version of protoc-gen-go is specified by the version of protobuf in go.mod
+# go install uses the version of protoc-gen-go specified by go.mod ... I think
 $(PROTOC_GEN_GO): go.mod | $(BUILD_DIR)
-	go build -o $@ github.com/golang/protobuf/protoc-gen-go
+	GOBIN=$(realpath $(BUILD_DIR)) go install google.golang.org/protobuf/cmd/protoc-gen-go
+
+# manually specified version since we don't import this from code anywhere
+# TODO: Import this from some tool so it gets updated with go get?
+$(PROTOC_GEN_GO_GRPC): go.mod | $(BUILD_DIR)
+	GOBIN=$(realpath $(BUILD_DIR)) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
 
 $(BUILD_DIR):
 	mkdir -p $@
