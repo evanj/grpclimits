@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import grpc  # type: ignore
+import grpc
 import helloworld_pb2
 import helloworld_pb2_grpc
 import logging
@@ -12,11 +12,11 @@ import typing_extensions
 
 
 _CONNECTIVITY_CODE_MAP = {
-    grpc.ChannelConnectivity.IDLE.value[0]: grpc.ChannelConnectivity.IDLE,
-    grpc.ChannelConnectivity.CONNECTING.value[0]: grpc.ChannelConnectivity.CONNECTING,
-    grpc.ChannelConnectivity.READY.value[0]: grpc.ChannelConnectivity.READY,
-    grpc.ChannelConnectivity.TRANSIENT_FAILURE.value[0]: grpc.ChannelConnectivity.TRANSIENT_FAILURE,
-    grpc.ChannelConnectivity.SHUTDOWN.value[0]: grpc.ChannelConnectivity.SHUTDOWN,
+    grpc.ChannelConnectivity.IDLE.value[0]: grpc.ChannelConnectivity.IDLE,  # type: ignore[index]
+    grpc.ChannelConnectivity.CONNECTING.value[0]: grpc.ChannelConnectivity.CONNECTING,  # type: ignore[index]
+    grpc.ChannelConnectivity.READY.value[0]: grpc.ChannelConnectivity.READY,  # type: ignore[index]
+    grpc.ChannelConnectivity.TRANSIENT_FAILURE.value[0]: grpc.ChannelConnectivity.TRANSIENT_FAILURE,  # type: ignore[index]
+    grpc.ChannelConnectivity.SHUTDOWN.value[0]: grpc.ChannelConnectivity.SHUTDOWN,  # type: ignore[index]
 }
 
 
@@ -109,7 +109,8 @@ class RoundRobinNamedChannels(typing.Generic[StubType]):
                 # call a private grpc channel method to see if the channel is working
                 # TODO: use the public subscribe API, but that is more complicated
                 try_to_connect = True
-                state_code = named_channel.grpc_channel._channel.check_connectivity_state(
+
+                state_code = named_channel.grpc_channel._channel.check_connectivity_state(  # type: ignore[attr-defined]
                     try_to_connect
                 )
                 state = _connectivity_code_to_object(state_code)
@@ -189,20 +190,19 @@ def main() -> None:
 
     if len(addrs) == 1 and not args.force_multi:
         logging.warning("using single gRPC channel with single address with round_robin")
-        channel = grpc.insecure_channel(addrs[0], grpc_options=(_ROUND_ROBIN_OPTION))
+        channel = grpc.insecure_channel(addrs[0], options=(_ROUND_ROBIN_OPTION,))
         stub = helloworld_pb2_grpc.GreeterStub(channel)
-        channel_getter: StubGetter[helloworld_pb2_grpc.GreeterStub] = StubHolder(stub)
+        stub_getter: StubGetter[helloworld_pb2_grpc.GreeterStub] = StubHolder(stub)
     else:
         logging.info("using RoundRobinMultiStub with %d addresses = %r ...", len(addrs), addrs)
-        channel_getter = RoundRobinMultiStub(addrs, helloworld_pb2_grpc.GreeterStub)
+        stub_getter = RoundRobinMultiStub(addrs, helloworld_pb2_grpc.GreeterStub)
 
     while True:
-        channel = channel_getter.get()
-        client = helloworld_pb2_grpc.GreeterStub(channel)
+        stub = stub_getter.get()
 
         req = helloworld_pb2.HelloRequest(name="errLength=1")
         try:
-            resp = client.SayHello(req)
+            resp = stub.SayHello(req)
             logging.info("successful request message=%s", resp.message)
         except grpc.RpcError as e:
             logging.info("failed request code=%s details=%s", e.code(), e.details())

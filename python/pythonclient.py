@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-import grpc  # type: ignore
+import grpc
 import helloworld_pb2
 import helloworld_pb2_grpc
 import logging

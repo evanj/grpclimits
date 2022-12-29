@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import grpc  # type: ignore
+import grpc
 import helloworld_pb2
 import helloworld_pb2_grpc
 import logging

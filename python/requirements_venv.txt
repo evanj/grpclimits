@@ -1,5 +1,6 @@
 # installing the binary wheel of grpcio requires an up to date version of pip
 # the version shipped with Python 3.7 in Debian is pretty ancient
 # also use a recent version of setuptools just to be safe
-pip==22.2.2
-setuptools==65.1.0
+pip==22.3.1
+setuptools==65.6.3
+wheel==0.38.4

@@ -38,14 +38,18 @@ helloworld/helloworld.pb.go: java/errorlimitserver/src/main/proto/helloworld.pro
 		$<
 
 python/helloworld_pb2.py: java/errorlimitserver/src/main/proto/helloworld.proto $(BUILD_DIR)/venv
-	# TODO: Use the main venv with grpcio-tools updates to the latest protobuf
-	$(BUILD_DIR)/venv/bin/python3 -m venv $(BUILD_DIR)/venv_protoc
-	$(BUILD_DIR)/venv_protoc/bin/pip install grpcio-tools==1.47.0
-	$(BUILD_DIR)/venv_protoc/bin/python3 -m grpc_tools.protoc --proto_path=java/errorlimitserver/src/main/proto --python_out=python --grpc_python_out=python $<
+	$(BUILD_DIR)/venv/bin/python3 -m grpc_tools.protoc --proto_path=java/errorlimitserver/src/main/proto \
+		--python_out=python \
+		--pyi_out=python \
+		--grpc_python_out=python \
+		$<
 
 # download protoc to a temporary tools directory
-$(PROTOC): buildtools/getprotoc.go | $(BUILD_DIR)
-	go run $< --outputDir=$(BUILD_DIR)
+$(PROTOC): $(BUILD_DIR)/getprotoc | $(BUILD_DIR)
+	$(BUILD_DIR)/getprotoc --outputDir=$(BUILD_DIR)
+
+$(BUILD_DIR)/getprotoc: | $(BUILD_DIR)
+	GOBIN=$(realpath $(BUILD_DIR)) go install github.com/evanj/hacks/getprotoc@latest
 
 # go install uses the version of protoc-gen-go specified by go.mod ... I think
 $(PROTOC_GEN_GO): go.mod | $(BUILD_DIR)
@@ -60,7 +64,7 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 clean:
-	$(RM) -r $(BUILD_DIR) python/__pycache__ helloworld/*.pb.go python/*_pb2*.py
+	$(RM) -r $(BUILD_DIR) python/__pycache__ helloworld/*.pb.go python/*_pb2*.py*
 
 docker:
 	docker build . --tag=gcr.io/networkping/grpclimitsserver:$(shell date '+%Y%m%d')-$(shell git rev-parse --short=10 HEAD)

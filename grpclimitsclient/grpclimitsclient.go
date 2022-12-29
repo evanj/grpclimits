@@ -25,7 +25,7 @@ func main() {
 	count := flag.Int("count", 1, "number of requests to make")
 	interRequestSleep := flag.Duration("interRequestSleep", 0, "time to sleep between requests")
 	withBlock := flag.Bool("withBlock", true, "if we should use the WithBlock dial option")
-	dialTimeout := flag.Duration("dialTimeout", 0, "timeout to use for DialContext")
+	dialTimeout := flag.Duration("dialTimeout", time.Minute, "timeout to use for DialContext")
 	flag.Parse()
 
 	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
@@ -43,13 +43,12 @@ func main() {
 		dialOptions = append(dialOptions, opt)
 	}
 
-	log.Printf("sending request to %s with error length %d ...", *addr, *errLength)
 	ctx := context.Background()
-
 	dialCtx := ctx
 	cancel := func() {}
 	if *dialTimeout > 0 {
 		dialCtx, cancel = context.WithTimeout(ctx, *dialTimeout)
+		log.Printf("setting Dial timeout=%s", dialTimeout.String())
 	}
 	conn, err := grpc.DialContext(dialCtx, *addr, dialOptions...)
 	cancel()
@@ -58,6 +57,7 @@ func main() {
 	}
 	client := helloworld.NewGreeterClient(conn)
 
+	log.Printf("sending request to %s with error length %d ...", *addr, *errLength)
 	for i := 0; i < *count; i++ {
 		if i > 0 {
 			time.Sleep(*interRequestSleep)
@@ -71,7 +71,7 @@ func main() {
 				if grpcStatus.Code() != codes.Unavailable {
 					const msgLimit = 70
 					if len(msgTruncated) > msgLimit {
-						msgTruncated = msg[:msgLimit] + "...TRUNCATED"
+						msgTruncated = msg[:msgLimit] + "...TRUNCATED FOR DISPLAY"
 					}
 				}
 
