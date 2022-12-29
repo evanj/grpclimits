@@ -8,7 +8,6 @@ import random
 import threading
 import time
 import typing
-import typing_extensions
 
 
 _CONNECTIVITY_CODE_MAP = {
@@ -160,7 +159,7 @@ class StubHolder(typing.Generic[StubType]):
         return self.stub
 
 
-class StubGetter(typing_extensions.Protocol[StubType]):
+class StubGetter(typing.Protocol[StubType]):
     def get(self) -> StubType:
         # explicitly empty: this is a mypy protocol
         # https://mypy.readthedocs.io/en/stable/protocols.html#simple-user-defined-protocols
