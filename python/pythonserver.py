@@ -10,7 +10,6 @@ class ErrorGreeter(helloworld_pb2_grpc.GreeterServicer):
     def SayHello(
         self, request: helloworld_pb2.HelloRequest, context: grpc.ServicerContext
     ) -> helloworld_pb2.HelloReply:
-
         parts = request.name.split("=")
         err_length = int(parts[1])
         err_msg = "x" * err_length
