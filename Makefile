@@ -57,7 +57,7 @@ $(PROTOC_GEN_GO): go.mod | $(BUILD_DIR)
 # manually specified version since we don't import this from code anywhere
 # TODO: Import this from some tool so it gets updated with go get?
 $(PROTOC_GEN_GO_GRPC): go.mod | $(BUILD_DIR)
-	GOBIN=$(realpath $(BUILD_DIR)) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
+	GOBIN=$(realpath $(BUILD_DIR)) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0
 
 $(BUILD_DIR):
 	mkdir -p $@

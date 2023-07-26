@@ -103,6 +103,10 @@ def main() -> None:
             resp = client.SayHello(req)
             logging.info("SUCCESS")
         except grpc.RpcError as e:
+            # The raised RpcError will also be a Call
+            if not isinstance(e, grpc.Call):
+                raise Exception("BUG: grpc.RpcError should be an instance of grpc.Call")
+
             msg = e.details()
             msg_truncated = msg
             LIMIT = 70
